@@ -11,9 +11,9 @@ import java.util.HashMap;
 import java.util.List;
 
 public class Main {
-    private static final String FIRST_API_KEY = "7620f95d-e5cd-40cd-a0de-5e2e91bffb93";
-    private static final String SECOND_API_KEY = "5ae2e3f221c38a28845f05b6a3cfe59aea4a99a5891873aa788772bc";
-    private static final String THIRD_API_KEY = "31d5736cae9f663109a7824e3fd830c8";
+    private static final String FIRST_API_KEY = "";
+    private static final String SECOND_API_KEY = ""; //вставьте свои ключи пожалуйста, моих я не дам
+    private static final String THIRD_API_KEY = "";
 
     public static void main(String[] args) throws IOException, InterruptedException {
         String place = "London"; //пробелы придется самому изменить на %20 //percentEscaper//UrlEscaper
