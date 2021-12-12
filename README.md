@@ -1,10 +1,13 @@
 ## About
 :yum: :yum:
-Напарсил полные штаны.
+
+1 неделя - Напарсил полные штаны.
+
+2 неделя - Надизайнил.
 ## Usage
 
 ### Build
-> ./gradlew shadowjar
+> ./gradlew build
 
 ### Run
-> java -jar Server/build/libs/Net3.jar
+> ./gradlew run

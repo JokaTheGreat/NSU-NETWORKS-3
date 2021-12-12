@@ -1,0 +1,38 @@
+#body {
+    -fx-background-color: #358235;
+}
+
+#buttonWrapper, #bodyWrapper, #placesWrapper, #weatherWrapper {
+    -fx-max-height: 100%;
+    -fx-orientation: vertical;
+}
+
+#searchButton {
+    -fx-pref-width: 150px;
+    -fx-pref-height: 50px;
+
+    -fx-background-color: #32cd43;
+    -fx-border-width: 0px;
+    -fx-border-radius: 3px;
+}
+
+#searchButton:hover {
+    -fx-background-color: #358235;
+    -fx-border-width: 2px;
+    -fx-border-color: #32cd43;
+}
+
+#searchField {
+    -fx-pref-width: 750px;
+    -fx-pref-height: 50px;
+}
+
+#locationsList {
+    -fx-pref-width: 300px;
+    -fx-pref-height: 360px;
+}
+
+#placesList {
+    -fx-pref-width: 700px;
+    -fx-pref-height: 360px;
+}

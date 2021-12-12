@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?language javascript?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.FlowPane?>
+
+<BorderPane fx:id="body" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="Controller" stylesheets="styles.css">
+    <center>
+        <FlowPane fx:id="bodyWrapper">
+            <BorderPane.margin>
+                <Insets bottom="30.0" left="40.0" right="40.0" top="30.0"/>
+            </BorderPane.margin>
+
+            <VBox>
+                <BorderPane>
+                    <left>
+                        <TextField fx:id="searchField" text="London"/>
+                    </left>
+
+                    <center>
+                        <FlowPane fx:id="buttonWrapper">
+                            <BorderPane.margin>
+                                <Insets right="20.0" left="20.0" bottom="30.0"/>
+                            </BorderPane.margin>
+                            <Button fx:id="searchButton" text="Search" onAction="#buttonClicked"/>
+                        </FlowPane>
+                    </center>
+
+                    <right>
+                        <BorderPane>
+                            <BorderPane.margin>
+                                <Insets bottom="30.0"/>
+                            </BorderPane.margin>
+                            <center>
+                                <Label fx:id="weatherLabel" text="Weather: -15.0°C"/>
+                            </center>
+                        </BorderPane>
+                    </right>
+
+                </BorderPane>
+                <BorderPane>
+                    <left>
+                        <FlowPane fx:id="placesWrapper">
+                            <BorderPane.margin>
+                                <Insets right="20.0"/>
+                            </BorderPane.margin>
+                            <ListView fx:id="locationsList">
+                                <Label text="Tower of London"/>
+                            </ListView>
+                        </FlowPane>
+                    </left>
+                    <right>
+                        <ListView fx:id="placesList">
+                            <Label text="Description 1"/>
+                            <Label text="Description 2"/>
+                        </ListView>
+                    </right>
+                </BorderPane>
+            </VBox>
+        </FlowPane>
+    </center>
+</BorderPane>
