@@ -38,7 +38,7 @@
                                 <Insets bottom="30.0"/>
                             </BorderPane.margin>
                             <center>
-                                <Label fx:id="weatherLabel" text="Weather: -15.0°C"/>
+                                <Label fx:id="weatherLabel" text=""/>
                             </center>
                         </BorderPane>
                     </right>
@@ -50,15 +50,12 @@
                             <BorderPane.margin>
                                 <Insets right="20.0"/>
                             </BorderPane.margin>
-                            <ListView fx:id="locationsList">
-                                <Label text="Tower of London"/>
+                            <ListView fx:id="locationsList" onMouseClicked="#locationListClicked">
                             </ListView>
                         </FlowPane>
                     </left>
                     <right>
                         <ListView fx:id="placesList">
-                            <Label text="Description 1"/>
-                            <Label text="Description 2"/>
                         </ListView>
                     </right>
                 </BorderPane>
