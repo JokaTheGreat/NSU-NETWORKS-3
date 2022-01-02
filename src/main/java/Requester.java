@@ -1,5 +1,5 @@
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import javafx.util.Pair;
 
 import java.io.FileInputStream;
 import java.net.URI;
@@ -21,10 +21,10 @@ public class Requester {
     private static final int SEARCHING_RADIUS = 1000;
     private static final int PLACES_LIMIT = 5;
 
-    private static String lang = "en";
-    private static final HttpClient client = HttpClient.newHttpClient();
-    private static LocationsWrapper locations = null;
-    private static Weather weather = null;
+    private String lang;
+    private final HttpClient client = HttpClient.newHttpClient();
+    private LocationsWrapper locations = null;
+    private Place[] places = null;
 
     public Requester() throws Exception {
         Properties properties = new Properties();
@@ -63,12 +63,14 @@ public class Requester {
 
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
-                    ObjectMapper objectMapper = new ObjectMapper();
-                    try {
-                        locations = objectMapper.readValue(response.body(), LocationsWrapper.class);
-                    }
-                    catch (Exception e) {
-                        e.printStackTrace();
+                    if (response.statusCode() == RESPONSE_OK) {
+                        ObjectMapper objectMapper = new ObjectMapper();
+                        try {
+                            locations = objectMapper.readValue(response.body(), LocationsWrapper.class);
+                        }
+                        catch (JsonProcessingException e) {
+                            e.printStackTrace();
+                        }
                     }
 
                     return locations;
@@ -90,7 +92,7 @@ public class Requester {
                 });
     }
 
-    public CompletableFuture<List<CompletableFuture<Pair<String, String>>>> requestPlacesWithDescriptions(int locationIndex) {
+    public CompletableFuture<List<String>> requestPlaces(int locationIndex) {
         Location location = locations.getLocations().get(locationIndex);
         Point point = location.getPoint();
 
@@ -110,74 +112,83 @@ public class Requester {
 
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
-                    XidWrapper[] xidWrappers = null;
                     if (response.statusCode() == RESPONSE_OK){
                         ObjectMapper objectMapper = new ObjectMapper();
                         try {
-                            xidWrappers = objectMapper.readValue(response.body(), XidWrapper[].class);
+                            places = objectMapper.readValue(response.body(), Place[].class);
                         }
-                        catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    return xidWrappers;
-                })
-                .thenApply(xidWrappers -> {
-                    if (xidWrappers != null) {
-                        try {
-                            return requestDescription(xidWrappers);
-                        }
-                        catch (Exception e) {
+                        catch (JsonProcessingException e) {
                             e.printStackTrace();
                         }
                     }
 
-                    return null;
+                    return places;
+                })
+                .thenApply(ignored -> {
+                    List<String> placesNames = new ArrayList<>();
+                    for(Place place : places) {
+                        String name = place.getName();
+                        if (!name.isEmpty()) {
+                            placesNames.add(Controller.TRIANGLE_DOWN + " " + name);
+                        }
+                    }
+                    if (placesNames.isEmpty()) {
+                        placesNames.add("Can't find any interesting places! Sorry!!!");
+                    }
+
+                    return placesNames;
                 });
     }
 
-    private List<CompletableFuture<Pair<String, String>>> requestDescription(XidWrapper[] xidWrappers) {
-        List<CompletableFuture<Pair<String, String>>> placesWithDescription = new ArrayList<>();
+    public CompletableFuture<String> requestDescription(int placeIndex) {
+        Place place = places[placeIndex];
 
-        for (XidWrapper xidWrapper : xidWrappers) {
-            String uriForRequest = String.format("https://api.opentripmap.com/0.1/%s/places/xid/%s?apikey=%s",
-                    lang,
-                    xidWrapper.getXid(),
-                    OPENTRIPMAP_API_KEY
-            );
+        String uriForRequest = String.format("https://api.opentripmap.com/0.1/%s/places/xid/%s?apikey=%s",
+                lang,
+                place.getXid(),
+                OPENTRIPMAP_API_KEY
+        );
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .GET()
-                    .uri(URI.create(uriForRequest))
-                    .build();
+        HttpRequest request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create(uriForRequest))
+                .build();
 
-            placesWithDescription.add(
-                    client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                    .thenApply(response -> {
-                        PlaceInfo newPlaceWithDescription = null;
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    PlaceInfo placeWithDescription = null;
+
+                    if (response.statusCode() == RESPONSE_OK){
                         ObjectMapper objectMapper = new ObjectMapper();
                         try {
-                            newPlaceWithDescription = objectMapper.readValue(response.body(), PlaceInfo.class);
+                            placeWithDescription = objectMapper.readValue(response.body(), PlaceInfo.class);
                         }
-                        catch (Exception e) {
+                        catch (JsonProcessingException e) {
                             e.printStackTrace();
                         }
+                    }
 
-                        return newPlaceWithDescription;
-                    })
-                    .thenApply(placeWithDescription -> {
-                        String descr = "";
-                        DescrWrapper descrWrapper = placeWithDescription.getWikiExtracts();
-                        if (descrWrapper != null && descrWrapper.getDescr() != null) {
-                            descr = placeWithDescription.getWikiExtracts().getDescr();
+                    return placeWithDescription;
+                })
+                .thenApply(placeWithDescription -> {
+                    DescrWrapper descrWrapper = placeWithDescription.getDescrWrapper();
+                    if (descrWrapper != null) {
+                        String description = descrWrapper.getDescr();
+                        if (description != null) {
+                            return description;
                         }
+                    }
 
-                        return new Pair<>(placeWithDescription.getName(), descr);
-                    })
-            );
-        }
+                    AlterDescrWrapper alterDescrWrapper = placeWithDescription.getAlterDescrWrapper();
+                    if (alterDescrWrapper != null) {
+                        String description = alterDescrWrapper.getDescr();
+                        if (description != null) {
+                            return description;
+                        }
+                    }
 
-        return placesWithDescription;
+                    return "";
+                });
     }
 
     public CompletableFuture<Double> requestTemp(int locationIndex) {
@@ -197,18 +208,23 @@ public class Requester {
 
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
-                   ObjectMapper objectMapper = new ObjectMapper();
-                    try {
-                        weather = objectMapper.readValue(response.body(), Weather.class);
+                    Weather weather = null;
+
+                    if (response.statusCode() == RESPONSE_OK) {
+                        ObjectMapper objectMapper = new ObjectMapper();
+                        try {
+                            weather = objectMapper.readValue(response.body(), Weather.class);
+                        }
+                        catch (JsonProcessingException e) {
+                            e.printStackTrace();
+                        }
                     }
-                    catch (Exception e) {
-                        e.printStackTrace();
-                    }
+
                     return weather;
                 })
-                .thenApply(ignored -> {
-                   TempWrapper tempWrapper = weather.getTempWrapper();
-                   return tempWrapper.getTemp() - KELVIN_WATER_FREEZE_TEMP;
+                .thenApply(weather -> {
+                    TempWrapper tempWrapper = weather.getTempWrapper();
+                    return tempWrapper.getTemp() - KELVIN_WATER_FREEZE_TEMP;
                 });
     }
 }

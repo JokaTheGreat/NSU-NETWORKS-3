@@ -1,15 +1,15 @@
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.util.Pair;
 
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 public class Controller implements Initializable {
 
@@ -23,6 +23,10 @@ public class Controller implements Initializable {
     private ListView<String> locationsList;
     @FXML
     private ListView<String> placesList;
+    private ObservableList<String> placesObservableList;
+
+    public static final String TRIANGLE_UP = "\u25B3";
+    public static final String TRIANGLE_DOWN = "\u25BD";
 
     private Requester requester;
 
@@ -35,41 +39,57 @@ public class Controller implements Initializable {
             e.printStackTrace();
         }
 
-        placesList.setCellFactory(param -> new ListCell<>(){
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
+        Platform.runLater(() ->
+            placesList.setCellFactory(param -> new ListCell<>(){
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
 
-                if (empty || item == null) {
-                    setGraphic(null);
-                    setText(null);
+                    if (empty || item == null) {
+                        setGraphic(null);
+                        setText(null);
+                    }
+                    else {
+                        double cellWidth = param.getWidth() - 30;
+
+                        setMinWidth(cellWidth);
+                        setMaxWidth(cellWidth);
+                        setPrefWidth(cellWidth);
+
+                        setWrapText(true);
+
+                        setText(item);
+                    }
                 }
-                else {
-                    double cellWidth = param.getWidth() - 30;
+            })
+        );
+    }
 
-                    setMinWidth(cellWidth);
-                    setMaxWidth(cellWidth);
-                    setPrefWidth(cellWidth);
+    private String getPlaceName(String placeWithDescription) {
+        if (!placeWithDescription.contains("\n")) {
+            return TRIANGLE_UP + " " + placeWithDescription.substring(placeWithDescription.indexOf(TRIANGLE_DOWN) + 2);
+        }
 
-                    setWrapText(true);
+        return placeWithDescription.substring(0, placeWithDescription.indexOf("\n"));
+    }
 
-                    setText(item);
-                }
-            }
-        });
+    private boolean isInterestingPlace(String placeName) {
+        return placeName.contains(TRIANGLE_DOWN) || placeName.contains(TRIANGLE_UP);
     }
 
     @FXML
     private void buttonClicked() throws Exception {
-        weatherLabel.setText("");
-        locationsList.setItems(null);
-        placesList.setItems(null);
+        Platform.runLater(() -> {
+            weatherLabel.setText("");
+            locationsList.setItems(null);
+            placesList.setItems(null);
+        });
 
         String requestedPlace = searchField.getText();
-        List<String> names = requester.requestLocations(requestedPlace).get();
-
-        ObservableList<String> locations = FXCollections.observableArrayList(names);
-        locationsList.setItems(locations);
+        requester.requestLocations(requestedPlace).thenAccept(names -> {
+            ObservableList<String> locations = FXCollections.observableArrayList(names);
+            Platform.runLater(() -> locationsList.setItems(locations));
+        });
     }
 
     @FXML
@@ -79,43 +99,40 @@ public class Controller implements Initializable {
         if (chosenLocation != null) {
             int chosenLocationId = locationsList.getSelectionModel().getSelectedIndex();
 
-            CompletableFuture<List<CompletableFuture<Pair<String, String>>>> placesWithDescriptions = requester.requestPlacesWithDescriptions(chosenLocationId);
+            CompletableFuture<List<String>> placesNames = requester.requestPlaces(chosenLocationId);
             CompletableFuture<Double> temp = requester.requestTemp(chosenLocationId);
 
-            String weather = String.format("Weather: %.2g \u00B0C",
-                    temp.get()
-            );
-            weatherLabel.setText(weather);
+            temp.thenAccept(temperature -> {
+                Platform.runLater(() -> weatherLabel.setText(String.format("Weather: %.2g \u00B0C", temperature)));
+            });
 
-            List<CompletableFuture<Pair<String,String>>> placesWithDescriptionsList = placesWithDescriptions.get();
-
-            if (placesWithDescriptionsList == null) {
-                placesList.setItems(null);
-                return;
-            }
-
-            List<String> placesWithDescription = new ArrayList<>();
-            for(CompletableFuture<Pair<String, String>> futurePair : placesWithDescriptionsList) {
-                Pair<String, String> nameAndDescr = null;
-                try {
-                    nameAndDescr = futurePair.get();
-                }
-                catch (Exception e) {
-                    e.printStackTrace();
+            placesNames.thenAccept(names -> {
+                if (names == null) {
+                    Platform.runLater(() -> placesList.setItems(null));
+                    return;
                 }
 
-                if (nameAndDescr != null) {
-                    String name = nameAndDescr.getKey();
-                    if (name != null && name != "") {
-                        placesWithDescription.add(
-                                String.format("%s\n\n%s", name, nameAndDescr.getValue())
-                        );
-                    }
-                }
-            }
+                placesObservableList = FXCollections.observableArrayList(names);
+                Platform.runLater(() -> placesList.setItems(placesObservableList));
+            });
+        }
+    }
 
-            ObservableList<String> places = FXCollections.observableArrayList(placesWithDescription);
-            placesList.setItems(places);
+    @FXML
+    private void placesListClicked() throws ExecutionException, InterruptedException {
+        String chosenPlace = placesList.getSelectionModel().getSelectedItem();
+
+        if (chosenPlace != null && isInterestingPlace(chosenPlace)) {
+            int chosenPlaceId = placesList.getSelectionModel().getSelectedIndex();
+
+            CompletableFuture<String> description = requester.requestDescription(chosenPlaceId);
+
+            description.thenAccept(descriptionText -> {
+                String oldPlaceWithDescription = placesObservableList.get(chosenPlaceId);
+                String placeName = getPlaceName(oldPlaceWithDescription);
+
+                Platform.runLater(() -> placesObservableList.set(chosenPlaceId, placeName + "\n" + descriptionText));
+            });
         }
     }
 }

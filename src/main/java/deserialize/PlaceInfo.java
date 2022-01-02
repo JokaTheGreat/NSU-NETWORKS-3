@@ -9,9 +9,15 @@ public class PlaceInfo {
     @JsonProperty("name")
     private String name;
     private DescrWrapper descrWrapper;
+    @JsonProperty("info")
+    private AlterDescrWrapper alterDescrWrapper;
 
-    public DescrWrapper getWikiExtracts() {
+    public DescrWrapper getDescrWrapper() {
         return descrWrapper;
+    }
+
+    public AlterDescrWrapper getAlterDescrWrapper() {
+        return alterDescrWrapper;
     }
 
     public String getName() {
@@ -23,7 +29,7 @@ public class PlaceInfo {
     }
 
     @JsonSetter("wikipedia_extracts")
-    public void setWikiExtracts(DescrWrapper descrWrapper) {
+    public void setDescrWrapper(DescrWrapper descrWrapper) {
         this.descrWrapper = descrWrapper;
     }
 }

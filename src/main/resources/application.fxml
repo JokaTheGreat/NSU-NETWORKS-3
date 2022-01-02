@@ -20,7 +20,7 @@
             <VBox>
                 <BorderPane>
                     <left>
-                        <TextField fx:id="searchField" text="London"/>
+                        <TextField fx:id="searchField" text=""/>
                     </left>
 
                     <center>
@@ -55,7 +55,7 @@
                         </FlowPane>
                     </left>
                     <right>
-                        <ListView fx:id="placesList">
+                        <ListView fx:id="placesList" onMouseClicked="#placesListClicked">
                         </ListView>
                     </right>
                 </BorderPane>
