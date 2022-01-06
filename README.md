@@ -1,10 +1,9 @@
 ## About
 :yum: :yum:
-Напарсил полные штаны.
 ## Usage
 
 ### Build
-> ./gradlew shadowjar
+> ./gradlew build
 
 ### Run
-> java -jar Server/build/libs/Net3.jar
+> ./gradlew run
